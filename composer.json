@@ -1,0 +1,17 @@
+{
+    "name": "admin/test",
+    "autoload": {
+        "psr-4": {
+            "Admin\\Test\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Athene008",
+            "email": "152351846+Athene008@users.noreply.github.com"
+        }
+    ],
+    "require": {
+        "donatello-za/rake-php-plus": "^1.0"
+    }
+}
