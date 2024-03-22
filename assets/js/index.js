@@ -1,12 +1,23 @@
 const delayTime = 100;
 let count = 0;
 
-function setVisibleMode(type) {
+function setVisibleMode(mode) {
     let element;
 
-    document.querySelector("img[alt='dark']").src = `./assets/images/cat_${type}.gif`;
+    var xhr = new XMLHttpRequest();
+    // Save Cookie
+    xhr.onreadystatechange = function () {
+        if (this.readyState == 4 && this.status == 200) {
+            if (this.responseText != 'success') {
+                console.log('Error Occured!');
+            }
+        }
+    };
+    xhr.open("GET", "backend/main.php?display_mode=" + mode + "&mode=set_display_mode", true);
+    xhr.send();
 
-    if (type == 'dark') {
+    // Set Display Mode
+    if (mode == 'dark') {
         element = document.querySelector('.light-mode');
         element.classList.remove('light-mode');
         element.classList.add('dark-mode');
@@ -24,18 +35,30 @@ function search() {
     let pattern = /[^a-zA-Z0-9 \-!?&.:]/;
 
     if (pattern.test(keyword)) {
-        
-    } else {
-        // Change URL
-        history.pushState('', '',  '?q=' + keyword.replaceAll(' ', '+'));
-
-        load('first');
+        keyword = keyword.replace(pattern, '');
     }
+
+    // Change URL
+    history.pushState('', '', '?q=' + keyword.replaceAll(' ', '+'));
+
+    load('first');
+
 }
 
-function save(appId, clicked) {
+function save(appId) {
     var xhr = new XMLHttpRequest();
     var keyword = document.querySelector('.search-box').value;
+
+    // Get Current Date
+    var currentDate = new Date();
+    var year = currentDate.getFullYear();
+    var month = String(currentDate.getMonth() + 1).padStart(2, '0');
+    var day = String(currentDate.getDate()).padStart(2, '0');
+    var hours = String(currentDate.getHours()).padStart(2, '0');
+    var minutes = String(currentDate.getMinutes()).padStart(2, '0');
+    var seconds = String(currentDate.getSeconds()).padStart(2, '0');
+
+    var clicked = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 
     xhr.onreadystatechange = function () {
         if (this.readyState == 4 && this.status == 200) {
@@ -44,14 +67,14 @@ function save(appId, clicked) {
             }
         }
     };
-    xhr.open("GET", "backend/main.php?keyword=" + keyword + "&app_id=" + appId + "&clicked" + clicked + "&mode=save", true);
+    xhr.open("GET", "backend/main.php?keyword=" + keyword + "&app_id=" + appId + "&clicked=" + clicked + "&mode=save", true);
     xhr.send();
 }
 
 function load(order) {
     var xhr = new XMLHttpRequest();
     var keyword = document.querySelector('.search-box').value;
-    
+
     if (order == "first") {
         count = 0;
     } else {
@@ -80,7 +103,7 @@ function generateHTML(data) {
         html += `<div class="col-md-4 my-2">
                     <div class="box-container p-1 d-flex">
                     <div class="left-border"></div>
-                    <a href="${item.url}" target="_blank" class="item">
+                    <a href="${item.url}" target="_blank" class="item" onclick="save('${item.app_id}')">
                         <div class="box position-relative w-100" style="height: 90px;">
                             <div class="top-border"></div>
                             <div class="d-flex">  
@@ -104,11 +127,9 @@ function generateHTML(data) {
 
 window.onload = () => {
     let searchDelayTime;
-    //setVisibleMode('dark');
-    
+
     document.querySelector('#view-more').addEventListener('click', load);
-    
-    document.querySelector('.search-box').addEventListener('input', function(e) {
+    document.querySelector('.search-box').addEventListener('input', function (e) {
         clearTimeout(searchDelayTime);
         searchDelayTime = setTimeout(search, delayTime);
     });

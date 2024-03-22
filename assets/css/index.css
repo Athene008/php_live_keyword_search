@@ -174,5 +174,5 @@
 }
 
 .dark-mode .tumbler {
-  transform: translateX(calc(100% - 2px));
+  transform: translateX(calc(100% + 2px));
 }

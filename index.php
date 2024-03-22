@@ -5,6 +5,8 @@ $best_win_apps = new BestWinApps;
 
 $result = $best_win_apps->get_apps($_GET['q']);
 $keywords = str_replace('+', ' ', $_GET['q']);
+
+$display_mode = $_COOKIE['mode'] ?? 'light';
 ?>
 
 <!DOCTYPE html>
@@ -47,13 +49,13 @@ $keywords = str_replace('+', ' ', $_GET['q']);
 </head>
 
 <body>
-  <div class="light-mode">
+  <div class="<?= $display_mode; ?>-mode">
     <div class="container-fluid content">
       <div class="row pb-5">
         <div class="col-md-2 col-lg-3 col-xl-4"></div>
         <div class="col-md-8 col-lg-6 col-xl-4">
-          <img class="my-5" src="./assets/images/cat_light.gif" alt="dark" width="100%" height="auto">
-          <input type="text" class="form-control search-box" placeholder="Type to search..." autocomplete="off" value="<?php echo $keywords; ?>">
+          <img class="my-5" src="./assets/images/cat_<?= $display_mode; ?>.gif" alt="dark" width="100%" height="auto">
+          <input type="text" class="form-control search-box" placeholder="Type to search..." autocomplete="off" value="<?= $keywords; ?>">
           <p class="tip">Tip: You can also search for apps with specific license. For example, 'Open source video player'</p>
         </div>
         <div class="col-md-2 col-lg-3 col-xl-4"></div>
@@ -72,16 +74,16 @@ $keywords = str_replace('+', ' ', $_GET['q']);
                 <div class="col-md-4 my-2">
                   <div class="box-container p-1 d-flex">
                     <div class="left-border"></div>
-                    <a href="<?php echo $row['url'];?>" target="_blank" class="item" onclick="save(<?php echo $row['app_id'];?>, <?php echo $row['name']?>)">
+                    <a href="<?= $row['url'];?>" target="_blank" class="item" onclick="save('<?= $row['app_id'];?>')">
                       <div class="box position-relative w-100" style="height: 90px;">
                         <div class="top-border"></div>
                         <div class="d-flex">  
                           <div>
-                            <img src="./assets/app_icons/<?php echo $row['icon_name'];?>.png" alt="png" style="width: 50px;" class="p-1">
+                            <img src="./assets/app_icons/<?= $row['icon_name'];?>.png" alt="png" style="width: 50px;" class="p-1">
                           </div>
                           <div class="w-100 px-1">
-                            <h6 class="fw-bold my-1 item-title"><?php echo $row['name'];?></h6>
-                            <p class="item-desc"><?php echo $row['description'];?></p>
+                            <h6 class="fw-bold my-1 item-title"><?= $row['name'];?></h6>
+                            <p class="item-desc"><?= $row['description'];?></p>
                           </div>
                         </div>
                         <div class="bottom-border"></div>
@@ -97,7 +99,7 @@ $keywords = str_replace('+', ' ', $_GET['q']);
             </div>
             
             <div class="p-1">
-              <button type="button" id="view-more" class="btn btn-sm btn-info form-control text-center"  <?php echo $result["more"] ? "" : 'style="display: none;"'; ?>>
+              <button type="button" id="view-more" class="btn btn-sm btn-info form-control text-center"  <?= $result["more"] ? "" : 'style="display: none;"'; ?>>
                 View More
               </button>
             </div>
@@ -141,14 +143,14 @@ $keywords = str_replace('+', ' ', $_GET['q']);
                     <div style="float: left;">
                       <p class="m-0 footer-content"><small>bestwinapps@info.com</small></p>
                     </div>
-                    <div style="float: right;" class="tumbler-wrapper">
-                      <div class="tumbler"></div>
-                      <div class="d-flex align-items-center h-100" onclick="setVisibleMode('light')">
+                    <div style="float: right;" class="tumbler-wrapper p-0">
+                      <div class="tumbler ms-1"></div>
+                      <div class="d-flex justify-content-center align-items-center w-100 h-100" onclick="setVisibleMode('light')">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-sun text-white" viewBox="0 0 16 16">
                           <path d="M8 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6m0 1a4 4 0 1 0 0-8 4 4 0 0 0 0 8M8 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 0m0 13a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 13m8-5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2a.5.5 0 0 1 .5.5M3 8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2A.5.5 0 0 1 3 8m10.657-5.657a.5.5 0 0 1 0 .707l-1.414 1.415a.5.5 0 1 1-.707-.708l1.414-1.414a.5.5 0 0 1 .707 0m-9.193 9.193a.5.5 0 0 1 0 .707L3.05 13.657a.5.5 0 0 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0m9.193 2.121a.5.5 0 0 1-.707 0l-1.414-1.414a.5.5 0 0 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707M4.464 4.465a.5.5 0 0 1-.707 0L2.343 3.05a.5.5 0 1 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .708" />
                         </svg>
                       </div>
-                      <div class="d-flex align-items-center h-100" onclick="setVisibleMode('dark')">
+                      <div class="d-flex justify-content-center align-items-center w-100 h-100" onclick="setVisibleMode('dark')">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-moon text-white" viewBox="0 0 16 16">
                           <path d="M6 .278a.77.77 0 0 1 .08.858 7.2 7.2 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.277q.792-.001 1.533-.16a.79.79 0 0 1 .81.316.73.73 0 0 1-.031.893A8.35 8.35 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.75.75 0 0 1 6 .278M4.858 1.311A7.27 7.27 0 0 0 1.025 7.71c0 4.02 3.279 7.276 7.319 7.276a7.32 7.32 0 0 0 5.205-2.162q-.506.063-1.029.063c-4.61 0-8.343-3.714-8.343-8.29 0-1.167.242-2.278.681-3.286" />
                         </svg>
