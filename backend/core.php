@@ -27,44 +27,55 @@ class BestWinApps
     public function get_apps($query)
     {
         if ($query) {
-            $sql = $this->select_query($query, 0);
-            $count_sql = $this->count_query($query);
+            $result_query =  $this->executable_query($query, 0);
+            $sql = $result_query['select'];
+            $count_sql = $result_query['count'];
         } else {
             $sql = "SELECT * From bwa_apps Order By name Limit 20";
             $count_sql = 'SELECT COUNT(*) as total_rows From bwa_apps';
         }
-        
-        $result = $this->conn->query($sql);
 
-        // count items
-        $count_result = $this->conn->query($count_sql);
-        $count_row = $count_result->fetch_assoc();
-        $total_rows = $count_row['total_rows'];
-        return array('result' => $result, 'more' => ($total_rows > 20));
+        if ($sql == null) {
+            return array('result' => array(), 'more' => false);
+        } else {
+            $result = $this->conn->query($sql);
+    
+            // count items
+            $count_result = $this->conn->query($count_sql);
+            $count_row = $count_result->fetch_assoc();
+            $total_rows = $count_row['total_rows'];
+            return array('result' => $result, 'more' => ($total_rows > 20));
+        }
     }
 
     public function more_load($query, $count)
     {
-         if ($query) {
-            $sql = $this->select_query($query, $count);
-            $count_sql = $this->count_query($query);
+        if ($query) {
+            $result_query =  $this->executable_query($query, $count);
+            $sql = $result_query['select'];
+            $count_sql = $result_query['count'];
         } else {
             $sql = "SELECT * From bwa_apps Order By name LIMIT 20 OFFSET " . $count;
             $count_sql = 'SELECT COUNT(*) as total_rows From bwa_apps';
         }
-        $query_result = $this->conn->query($sql);
-    
-        // Count items
-        $count_result = $this->conn->query($count_sql);
-        $count_row = $count_result->fetch_assoc();
-        $total_rows = $count_row['total_rows'];
-
-        $result = array();
-        while($row = $query_result->fetch_assoc()) {
-            array_push($result, $row);
-        }
         
-        return array('result' => $result, 'more' => ($total_rows > $count + 20));
+        if ($sql == null) {
+            return array('result' => array(), 'more' => false);
+        } else {
+            $query_result = $this->conn->query($sql);
+    
+            // Count items
+            $count_result = $this->conn->query($count_sql);
+            $count_row = $count_result->fetch_assoc();
+            $total_rows = $count_row['total_rows'];
+    
+            $result = array();
+            while ($row = $query_result->fetch_assoc()) {
+                array_push($result, $row);
+            }
+    
+            return array('result' => $result, 'more' => ($total_rows > $count + 20));
+        }
     }
 
     public function save_stats_clicks($app_id, $clicked, $keyword)
@@ -74,43 +85,40 @@ class BestWinApps
         return $result;
     }
 
-    private function select_query($query, $count)
+    private function executable_query($query, $count)
     {
-        $values = $this->get_keywords($query);
-        $keywords_count = count(explode('+', $query));
+        $keywords = $this->get_keywords($query);
         
-        $sql = "SELECT t1.app_id, t1.name, t1.icon_name, t1.description, t1.url, t3.keyword
-                FROM bwa_apps AS t1 
-                JOIN bwa_keywords_to_apps AS t2 ON t1.app_id = t2.app_id 
-                JOIN bwa_keywords AS t3 ON t2.keyword_id = t3.keyword_id
-                Where t3.keyword IN ($values)
-                GROUP BY t1.app_id
-                HAVING COUNT(DISTINCT t3.keyword) = $keywords_count Order By name Limit 20 Offset " . $count;
+        $origin_database = $this->get_data_based_first_value($keywords['origin']);
+        $lemmatized_database = $this->get_data_based_first_value($keywords['lemmatized']);
 
-        return $sql;
-    }
+        $filtered_app_ids = array();
+        foreach ($origin_database as $data) {
+            if ($this->search(0, $keywords['origin'], json_decode($data['keywords']))) {
+                array_push($filtered_app_ids, $data['app_id']);
+            }
+        }
 
-    private function count_query($query)
-    {
-        $values = $this->get_keywords($query);
-        $keywords_count = count(explode('+', $query));
+        foreach ($lemmatized_database as $data) {
+            if ($this->search(0, $keywords['lemmatized'], json_decode($data['keywords']))) {
+                array_push($filtered_app_ids, $data['app_id']);
+            }
+        }
 
-        $sql = "SELECT COUNT(*) as total_rows
-                FROM (SELECT t1.app_id, COUNT(DISTINCT t3.keyword) AS keyword_count
-                    FROM bwa_apps AS t1 
-                    JOIN bwa_keywords_to_apps AS t2 ON t1.app_id = t2.app_id 
-                    JOIN bwa_keywords AS t3 ON t2.keyword_id = t3.keyword_id
-                    Where t3.keyword IN ($values)
-                    GROUP BY t1.app_id
-                    HAVING COUNT(DISTINCT t3.keyword) = $keywords_count) AS t_1";
-
-        return $sql;
+        $select_sql = "SELECT * From bwa_apps Where app_id In (" . implode(', ', $filtered_app_ids) . ") Limit $count, 20";
+        $count_sql = "SELECT Count(*) as total_rows From bwa_apps Where app_id In (" . implode(', ', $filtered_app_ids) . ")";
+        
+        if (count($filtered_app_ids) > 0) {
+            return array('select' => $select_sql, 'count' => $count_sql);
+        } else {
+            return array('select' => null, 'count' => null);
+        }
     }
 
     private function get_keywords($text)
     {
         $text = str_replace("+", " ", $text);
-        
+
         // Get Keywords
         $phrases = RakePlus::create($text)->get();
         $keywords = array();
@@ -122,15 +130,51 @@ class BestWinApps
         // Transform keywords
         $lemmatized_keywords = array();
         foreach ($keywords as $keyword) {
-            if ($keyword != Lemmatizer::getLemma($keyword))
-            {
-                array_push($lemmatized_keywords, Lemmatizer::getLemma($keyword));
+            array_push($lemmatized_keywords, Lemmatizer::getLemma($keyword));
+        }
+        
+        return array('origin' => $keywords, 'lemmatized' => $lemmatized_keywords);
+    }
+
+    private function search($n, $keywords, $database)
+    {
+        $count = count($keywords);
+
+        if ($n >= $count) {
+            return true;
+        } else {
+            if (in_array($keywords[$n], $database)) {
+                return $this->search($n + 1, $keywords, $database);
+            } else if ($n < $count - 1 && in_array($keywords[$n] . $keywords[$n + 1], $database)) {
+                return $this->search($n + 2, $keywords, $database);
+            } else {
+                return false;
             }
         }
-
-        $search_keywords = array_merge($keywords, $lemmatized_keywords);
-        return "'" . implode("', '" , $search_keywords) . "'";
     }
-    
-    
+
+    private function get_data_based_first_value($keywords)
+    {
+        $all_keywords = array();
+        $get_all_keywords_sql =
+            "SELECT app_id, JSON_ARRAYAGG(keyword) AS keywords
+             FROM (Select bwa_keywords.keyword, bwa_keywords_to_apps.app_id
+                  From bwa_keywords
+                  Inner Join bwa_keywords_to_apps
+                  On bwa_keywords.keyword_id = bwa_keywords_to_apps.keyword_id) as t1
+             Where app_id 
+             IN (Select bwa_keywords_to_apps.app_id
+                 From bwa_keywords
+                 Inner Join bwa_keywords_to_apps
+                 On bwa_keywords.keyword_id = bwa_keywords_to_apps.keyword_id
+                 Where bwa_keywords.keyword = '" . $keywords[0] . "' Or bwa_keywords.keyword = '" . $keywords[0] . $keywords[1] . "')
+             Group By app_id";
+             
+        $query_result = $this->conn->query($get_all_keywords_sql);
+        
+        while ($row = $query_result->fetch_assoc()) {
+            array_push($all_keywords, $row);
+        }
+        return $all_keywords;
+    }
 }

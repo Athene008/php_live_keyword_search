@@ -133,4 +133,14 @@ window.onload = () => {
         clearTimeout(searchDelayTime);
         searchDelayTime = setTimeout(search, delayTime);
     });
+    document.querySelector('.tumbler').addEventListener('click', function() {
+        console.log("ok");
+        if (document.querySelector('body > div').classList.value == "dark-mode") {
+            document.querySelector('body > div').classList.remove("dark-mode");
+            document.querySelector('body > div').classList.add("light-mode");
+        } else {
+            document.querySelector('body > div').classList.remove("light-mode");
+            document.querySelector('body > div').classList.add("dark-mode");
+        }
+    });
 }
